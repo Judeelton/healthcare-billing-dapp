@@ -29,12 +29,12 @@ All approvals are permanently recorded on-chain with timestamps and transaction 
 Records cannot be modified or deleted after submission
 Smart Contract
 
-HealthCare.sol — written in Solidity ^0.8.0 with full NatSpec documentation
+HealthCare.sol - written in Solidity ^0.8.0 with full NatSpec documentation
 
 solidity
-newRecord()     — Patient submits medical bill with CPT codes and amount
-signRecord()    — Hospital or Lab Admin approves bill (verified by wallet address)
-isApproved()    — Returns bool: true if both admins have signed, false otherwise
+newRecord()     - Patient submits medical bill with CPT codes and amount
+signRecord()    - Hospital or Lab Admin approves bill (verified by wallet address)
+isApproved()    - Returns bool: true if both admins have signed, false otherwise
 
 The contract was written independently with explicit require statements for input validation, NatSpec documentation on every function explaining the RCM context, and clean variable naming. It is based on the multi-signature approval pattern from the open source project below.
 
@@ -86,4 +86,4 @@ Developer
 
 Built by Jude Elton as part of a BSc Computer Science degree (First Class Honours, University of East London, 2026). Informed by direct professional experience in healthcare Revenue Cycle Management across VOB, AR Collection, Arbitration, and QA departments.
 
-GitHub · LinkedIn
+
