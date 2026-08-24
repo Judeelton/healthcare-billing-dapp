@@ -1,86 +1,79 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+/**
+ * @title HealthCare Billing Smart Contract
+ * @author Judeelton
+ * @notice This smart contract is designed to prevent fraudulent medical billing
+ *         in the Revenue Cycle Management (RCM) industry.
+ * @dev This contract implements a multi-signature approval system where both
+ *      the Hospital Admin and Lab Admin must approve a medical bill before
+ *      it can be claimed by the insurance company. This prevents any single
+ *      party from fraudulently approving bills.
+ *
+ * Real World Problem Solved:
+ * In the healthcare industry, fraudulent billing costs billions annually.
+ * Bills can be tampered with, duplicated, or falsely approved by a single
+ * corrupted employee. This smart contract solves this by requiring TWO
+ * independent approvals stored immutably on the Ethereum blockchain.
+ * Once recorded, no one can alter or delete the billing records.
+ */
+
 contract HealthCare {
-    address public hospitalAdmin;
-    address public labAdmin;
 
     struct Record {
-        uint256 ID;
-        uint256 price;
+        string patientName;
+        string billDetails;
+        uint256 billAmount;
+        address patient;
+        bool hospitalApproved;
+        bool labApproved;
         uint256 signatureCount;
-        string testName;
-        string date;
-        string hospitalName;
-        bool isValue;
-        address pAddr;
-        mapping (address => uint256) signatures;
     }
+
+    mapping(uint256 => Record) public _records;
+    uint256 public recordCount;
+    address public hospitalAdmin;
+    address public labAdmin;
 
     constructor(address _labAdmin) {
         hospitalAdmin = msg.sender;
         labAdmin = _labAdmin;
     }
 
-    // Mapping to store records
-    mapping (uint256=> Record) public _records;
-    uint256[] public recordsArr;
-
-    event recordCreated(uint256 ID, string testName, string date, string hospitalName, uint256 price);
-    event recordSigned(uint256 ID, string testName, string date, string hospitalName, uint256 price);
-
-    modifier signOnly {
-        require (msg.sender == hospitalAdmin || msg.sender == labAdmin, "You are not authorized to sign this.");
-        _;
+    function newRecord(
+        string memory _patientName,
+        string memory _billDetails,
+        uint256 _billAmount
+    ) public {
+        recordCount++;
+        _records[recordCount] = Record({
+            patientName: _patientName,
+            billDetails: _billDetails,
+            billAmount: _billAmount,
+            patient: msg.sender,
+            hospitalApproved: false,
+            labApproved: false,
+            signatureCount: 0
+        });
     }
 
-    modifier checkAuthBeforeSign(uint256 _ID) {
-        require(_records[_ID].isValue, "Recored does not exist");
-        require(address(0) != _records[_ID].pAddr, "Address is zero");
-        require(msg.sender != _records[_ID].pAddr, "You are not authorized to perform this action");
-        require(_records[_ID].signatures[msg.sender] != 1, "Same person cannot sign twice.");
-        _;
+    function signRecord(uint256 _id) public {
+        Record storage record = _records[_id];
+        require(_id > 0 && _id <= recordCount, "Invalid record ID");
 
+        if (msg.sender == hospitalAdmin) {
+            require(!record.hospitalApproved, "Hospital has already approved this bill");
+            record.hospitalApproved = true;
+            record.signatureCount++;
+        } else if (msg.sender == labAdmin) {
+            require(!record.labApproved, "Lab has already approved this bill");
+            record.labApproved = true;
+            record.signatureCount++;
+        }
     }
 
-    modifier validateRecord(uint256 _ID) {
-        // Only allows new records to be created
-        require(!_records[_ID].isValue, "Record with this ID already exists");
-        _;
-    }
-
-    // Create new record
-    function newRecord (
-        uint256 _ID,
-        uint256 price,
-        string memory _tName,
-        string memory _date,
-        string memory hName
-    )
-    validateRecord(_ID) public {
-        Record storage _newrecord = _records[_ID];
-        _newrecord.pAddr = msg.sender;
-        _newrecord.ID = _ID;
-        _newrecord.testName = _tName;
-        _newrecord.date = _date;
-        _newrecord.hospitalName = hName;
-        _newrecord.price = price;
-        _newrecord.isValue = true;
-        _newrecord.signatureCount = 0;
-
-        recordsArr.push(_ID);
-        emit  recordCreated(_newrecord.ID, _tName, _date, hName, price);
-    }
-
-    // Function to sign a record
-    function signRecord(uint256 _ID) signOnly checkAuthBeforeSign(_ID) public {
-        Record storage records = _records[_ID];
-        records.signatures[msg.sender] = 1;
-        records.signatureCount++;
-
-        // Checks if the record has been signed by both the authorities to process insurance claim
-        if(records.signatureCount == 2)
-            emit  recordSigned(records.ID, records.testName, records.date, records.hospitalName, records.price);
-
+    function isApproved(uint256 _id) public view returns (bool) {
+        return _records[_id].signatureCount >= 2;
     }
 }
